@@ -9,6 +9,9 @@ class Hue:
   """Class for hue objects
   :param username: Username to be used when connecting to hue bridge
   :param bridge_ip: IP of hue bridge to connect to
+  :param light_list: List of lights to take action on
+  :param action: Action to take on all lights passed in light_list
+  :show_all: If specified no action is taken and status of all lights is shown
   """
 
   def __init__(self, username, bridge_ip, light_list=None, action=None, show_all=None):
@@ -20,13 +23,20 @@ class Hue:
       #print(all_lights.values())
 
       if show_all == True:
+          info_string = ''
           for light_num,light_info in all_lights.items():
-            if light_info['state']['on']:
-              print('\x1b[6;30;42m%s is on \x1b[0m' % light_info['name'])
-              
-            elif not light_info['state']['on']:
-              print('\x1b[6;30;41m%s is not on\x1b[0m' % light_info['name'])
+              info_string += '%s is ' % light_info['name']
+              if light_info['state']['on']:
+                info_string += '\x1b[6;30;42m' + 'on' + '\x1b[0m'
+              elif not light_info['state']['on']:
+                info_string += '\x1b[6;30;41m' + 'off' + '\x1b[0m' + ". "
 
+              info_string += ' and is '
+              if light_info['state']['reachable']:
+                info_string += '\x1b[6;30;42m' + 'reachable.' + '\x1b[0m\n'
+              elif not light_info['state']['reachable']:
+                info_string += '\x1b[6;30;41m' + 'unreachable.' + '\x1b[0m\n'
+          print(info_string)
           sys.exit()
 
       elif light_list:
@@ -44,7 +54,7 @@ class Hue:
           response = requests.get(lights_url)
       except:
           sys.exit('Could not find any lights. Please ensure your bridge and lights are connected')
-      
+
       return response.json()
 
   def get_light_num(self, light_name, all_lights):
@@ -102,11 +112,11 @@ if __name__ == '__main__':
     parser.add_argument('-a', '--action', help='Action to perform on lights.  Can be On or Off.', choices=['On', 'on', 'Off', 'off'], dest='action')
     parser.add_argument('-s', '--show_all', help='Show all lights and their status', action='store_true', dest='show_all')
     args = parser.parse_args()
-    
+
     #make sure either cmd line arg or reading from .hue file gave us a username
     if len(args.username) == 0:
         sys.exit("Error: Username must be provided as argument or in %s" % dot_hue_path)
-    
+
     bridge_ip = get_bridge_ip(HUE_NUPNP)
 
     #print('Username is %s and bridge IP is %s' % (args.username, bridge_ip))
